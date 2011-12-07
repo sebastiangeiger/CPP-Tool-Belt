@@ -27,19 +27,23 @@ class MakefileTarget
     ensure_in_state(:compiled) do
       puts "Running #{@name}"
       executed_command = "bin/#{@name} #{all_parameters(parameters)} 2>&1"
-      result = `#{executed_command}`
-      puts executed_command if options[:verbose]
-      if $?.success? then
-        puts result if options[:verbose]
-        puts "....... OK"
-        @state = :finished
-      elsif dumpExists then 
-        result += startDebugger(@name) if options[:debugger]
-        puts "....... failed"
-        error "Had to start a debugging session for #{@name}", result
-      else
-        puts "....... failed"
-        error "Execution for #{@name} was not successful", result
+      repetitions = [options[:repetitions] || 1,1].max
+      repetitions.times do |i|
+        puts "Run ##{i+1}"
+        result = `#{executed_command}`
+        puts executed_command if options[:verbose]
+        if $?.success? then
+          puts result if options[:verbose]
+          puts "....... OK"
+          @state = :finished if i == repetitions
+        elsif dumpExists then 
+          result += startDebugger(@name) if options[:debugger]
+          puts "....... failed"
+          error "Had to start a debugging session for #{@name}", result
+        else
+          puts "....... failed"
+          error "Execution for #{@name} was not successful", result
+        end
       end
     end
   end
